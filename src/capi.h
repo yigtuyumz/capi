@@ -6,7 +6,6 @@
 # include <sys/socket.h>        /* socket, listen */
 # include <netinet/in.h>        /* struct sockaddr_in */
 # include <arpa/inet.h>         /* htons */
-# include <assert.h>            /* assert */
 # include <stdarg.h>            /* utils_vaput */
 # include <unistd.h>            /* write */
 # include <stdlib.h>            /* exit */
@@ -69,15 +68,9 @@
                                           x-----------x
 */
 
-void
-  bind_address(int sockfd, char *address, int port);
-
+void bind_address(int sockfd, char *address, int port);
 char *recv_data(int sockfd, size_t n);
-
-void
-  run_server(int serverfd);
-
-void
-  send_data(int sockfd, char *value);
+void run_server(int serverfd);
+void send_data(int sockfd, char *value);
 
 #endif /* CAPI_H */

@@ -60,6 +60,7 @@ run_server(int serverfd)
                 (acceptfd_addr.sin_addr.s_addr & 0xFF000000) >> 24,
                 acceptfd_addr.sin_port & 0x0000FFFF);
 
+    // TODO capi.c > run_server : dynamic buffer size for accepted socket
     size_t accept_buff_sz = 1000;
     char *accepted_data = recv_data(acceptfd, accept_buff_sz);
 
@@ -124,8 +125,8 @@ run_server(int serverfd)
   ]\
 }");
 
-    //TODO dynamic endpoints
-    //TODO read a JSON file for each endpoint
+    //TODO capi.c > run_server : dynamic endpoints
+    //TODO capi.c > run_server : read a JSON file for each endpoint
 
     char *header_str = get_http_header_str(header);
 

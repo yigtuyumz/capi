@@ -2,3 +2,5 @@
 src/out/
 src/capi
 *.*~
+tests/*
+!/tests/Makefile

@@ -5,11 +5,11 @@ _check_error_int(int boolean, char *err_msg)
 {
     if (!boolean) {
         if (err_msg == NULL) {
-            utils_putstr(STDOUT_FILENO, "Unknown error occured.");
+            utils_putstr(STDERR_FILENO, "Unknown error occured.\n");
         } else {
-            utils_putstr(STDERR_FILENO, err_msg);
+            utils_vaput(STDERR_FILENO, "%s\n", err_msg);
         }
-        utils_putchar(STDERR_FILENO, '\n');
+        // TODO checkerror.c > _check_error_int : non-static return values
         exit(1);
     }
 }
@@ -19,11 +19,11 @@ _check_error_str(char *boolean, char *err_msg)
 {
     if (!boolean) {
         if (err_msg == NULL) {
-            utils_putstr(STDOUT_FILENO, "Unknown error occured.");
+            utils_putstr(STDERR_FILENO, "Unknown error occured.\n");
         } else {
-            utils_putstr(STDERR_FILENO, err_msg);
+            utils_vaput(STDERR_FILENO, "%s\n", err_msg);
         }
-        utils_putchar(STDERR_FILENO, '\n');
+        // TODO checkerror.c > _check_error_str : non-static return values
         exit(1);
     }
 }

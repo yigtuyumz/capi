@@ -16,7 +16,7 @@ main(int argc, char *argv[])
 
     bind_address(CAPI_SOCKFD, "127.0.0.1", CAPI_PORT);
 
-    int listen_CAPI = listen(CAPI_SOCKFD, CAPI_MAX_LISTEN);
+    int listen_CAPI = listen(CAPI_SOCKFD, CAPILISTEN_BACKLOG);
 
     check_error((listen_CAPI >= 0), "listen failed.");
 
