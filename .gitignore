@@ -4,3 +4,4 @@ src/capi
 *.*~
 tests/*
 !/tests/Makefile
+build/

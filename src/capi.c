@@ -7,7 +7,7 @@ bind_address(int sockfd, char *address, int port)
 
     sock_address.sin_family = AF_INET;
     sock_address.sin_port = htons(port);
-    check_error(inet_pton(AF_INET, address, &sock_address.sin_addr) > 0,
+    check_error((inet_pton(AF_INET, address, &sock_address.sin_addr) > 0),
                 "Invalid address to bind.");
     int bnd = bind(sockfd, (struct sockaddr *) &sock_address,
                    sizeof(struct sockaddr_in));
@@ -20,7 +20,7 @@ recv_data(int sockfd, size_t n)
 {
     char *data = (char *) malloc(n);
 
-    check_error(data, "Malloc recv_data fails!");
+    check_error((data != NULL), "Malloc recv_data fails!");
 
     utils_bzero(data, n);
     ssize_t recv_count = recv(sockfd, data, n, 0);

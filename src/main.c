@@ -1,9 +1,9 @@
 #include "capi.h"
 
 int
-main(int argc, char *argv[])
+main(int argc __attribute__((unused)), char *argv[])
 {
-    check_error((argv[1]), "argv[1] is NULL.");
+    check_error((argv[1] != NULL), "argv[1] is NULL.");
 
     int CAPI_PORT = utils_atoi(argv[1]);
 
