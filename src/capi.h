@@ -71,6 +71,15 @@
 void bind_address(int sockfd, char *address, int port);
 char *recv_data(int sockfd, size_t n);
 void run_server(int serverfd);
-void send_data(int sockfd, char *value);
+void send_data(int sockfd, const char *value);
+
+#ifdef CAPI_DEBUG
+
+# include "json-c/json.h"
+
+const char *
+json_getfrom(const char *json_file);
+#endif /* CAPI_DEBUG */
+
 
 #endif /* CAPI_H */

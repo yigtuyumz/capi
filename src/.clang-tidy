@@ -1,0 +1,3 @@
+Checks: '*,-clang-analyzer-alpha*, -clang-analyzer-objc*, -misc-include-cleaner*, -altera-unroll-loops, -google-readability-todo*'
+WarningsAsErrors: ''
+FormatStyle: file

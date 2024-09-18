@@ -3,6 +3,10 @@
 int
 main(int argc __attribute__((unused)), char *argv[])
 {
+#ifdef CAPI_DEBUG
+    check_error((argv[2] != NULL), "argv[2] is NULL.");
+#endif /* CAPI_DEBUG */
+
     check_error((argv[1] != NULL), "argv[1] is NULL.");
 
     int CAPI_PORT = utils_atoi(argv[1]);

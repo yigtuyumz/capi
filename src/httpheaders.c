@@ -7,34 +7,35 @@ free_http_header(struct http_header_s *header)
         return;
     }
 
-    __uint32_t sz = 0;
+    __uint32_t header_pos = 0;
 
-    while (sz < header->sz) {
-        free(*(header->fields + sz));
-        sz++;
+    while (header_pos < header->sz) {
+        free(*(header->fields + header_pos));
+        header_pos++;
     }
 
-    free(header->fields);
+    free((void *) header->fields);
     free(header);
 }
 
-char *
+const char *
 get_http_header_str(struct http_header_s *header)
 {
-    if (header == NULL || *(header->fields) == NULL || header->sz == 0) {
+    //~ header->sz comparison is extra
+    if (header == NULL || header->fields == NULL || header->sz == 0) {
         return (NULL);
     }
 
-    __uint32_t i = 0;
     size_t tot_len = 1;
 
-    while (i < header->sz) {
-        tot_len += utils_strlen(*(header->fields + i));
-        i++;
+    __uint32_t field_offset = 0;
+
+    while (field_offset < header->sz) {
+        tot_len += utils_strlen(*(header->fields + field_offset));
+        field_offset++;
     }
 
-    i = 0;
-
+    //~ extra byte for NULL terminator
     char *ret_str = (char *) malloc(sizeof(char) * tot_len);
 
     if (ret_str == NULL) {
@@ -42,13 +43,14 @@ get_http_header_str(struct http_header_s *header)
     }
 
     *ret_str = 0;
+    field_offset = 0;
 
-    while (i < header->sz) {
-        utils_strcat(ret_str, *(header->fields + i));
-        i++;
+    while (field_offset < header->sz) {
+        utils_strcat(ret_str, *(header->fields + field_offset));
+        field_offset++;
     }
 
-    return (ret_str);
+    return ((const char *) ret_str);
 }
 
 struct http_header_s *
@@ -68,22 +70,24 @@ init_http_header(void)
 }
 
 size_t
-prepare_http_header(struct http_header_s *header, char *field)
+push_http_header(struct http_header_s *header, const char *field)
 {
     if (field == NULL || header == NULL) {
         return (0);
     }
 
-    (header->sz)++;
+    char **temp =
+        (char **) realloc((void *) header->fields,
+                          sizeof(char *) * (header->sz + 1));
 
-    header->fields = (char **) realloc(header->fields,
-                                       sizeof(char *) * (header->sz));
-
-    if (header->fields == NULL) {
+    if (temp == NULL) {
         return (0);
     }
+
     size_t copy_bytes = sizeof(char) * (utils_strlen(field) + 3);
     char *field_copy = (char *) malloc(copy_bytes);
+
+    header->fields = temp;
 
     if (field_copy == NULL) {
         return (0);
@@ -92,30 +96,40 @@ prepare_http_header(struct http_header_s *header, char *field)
     utils_strcpy(field_copy, field);
     utils_strcat(field_copy, "\r\n");
 
-    *(header->fields + (header->sz - 1)) = field_copy;
+    *(header->fields + header->sz) = field_copy;
+    header->sz++;
 
     return (copy_bytes);
 }
 
 size_t
-prepare_http_header2(struct http_header_s *header, char *field)
+push_http_header2(struct http_header_s *header, const char *field)
 {
-    if (header == NULL || field == NULL) {
+    if (field == NULL || header == NULL) {
         return (0);
     }
 
-    (header->sz)++;
-    header->fields = (char **) realloc(header->fields,
-                                       sizeof(char *) * (header->sz));
+    char **temp =
+        (char **) realloc((void *) header->fields,
+                          sizeof(char *) * (header->sz + 1));
 
-    if (header->fields == NULL) {
+    if (temp == NULL) {
         return (0);
     }
 
-    size_t copy_bytes = (utils_strlen(field) + 1) * sizeof(char);
+    size_t copy_bytes = sizeof(char) * (utils_strlen(field) + 1);
+    char *field_copy = (char *) malloc(copy_bytes);
 
-    *(header->fields + (header->sz - 1)) = (char *) malloc(copy_bytes);
-    utils_strcpy(*(header->fields + (header->sz - 1)), field);
+    header->fields = temp;
+
+    if (field_copy == NULL) {
+        return (0);
+    }
+
+    utils_strcpy(field_copy, field);
+
+    *(header->fields + header->sz) = field_copy;
+    header->sz++;
 
     return (copy_bytes);
 }

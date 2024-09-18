@@ -10,12 +10,12 @@ _check_error_int(int boolean, char *err_msg)
             utils_vaput(STDERR_FILENO, "%s\n", err_msg);
         }
         // TODO checkerror.c > _check_error_int : non-static return values
-        exit(1);
+        exit(1);    // NOLINT -concurrency-mt-unsafe
     }
 }
 
 void
-_check_error_str(char *boolean, char *err_msg)
+_check_error_str(const char *boolean, char *err_msg)
 {
     if (!boolean) {
         if (err_msg == NULL) {
@@ -24,6 +24,6 @@ _check_error_str(char *boolean, char *err_msg)
             utils_vaput(STDERR_FILENO, "%s\n", err_msg);
         }
         // TODO checkerror.c > _check_error_str : non-static return values
-        exit(1);
+        exit(1);    // NOLINT -concurrency-mt-unsafe
     }
 }

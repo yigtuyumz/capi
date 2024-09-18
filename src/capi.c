@@ -1,5 +1,20 @@
 #include "capi.h"
 
+#ifdef CAPI_DEBUG
+const char *
+json_getfrom(const char *json_file)
+{
+    json_object *root = json_object_from_file(json_file);
+    if (root == NULL) {
+        return (NULL);
+    }
+
+    const char *val = json_object_to_json_string(root);
+
+    return (val);
+}
+#endif
+
 void
 bind_address(int sockfd, char *address, int port)
 {
@@ -33,35 +48,41 @@ recv_data(int sockfd, size_t n)
 void
 run_server(int serverfd)
 {
-    int acceptfd;
     struct sockaddr_in acceptfd_addr;
     size_t acceptfd_addrlen = sizeof(struct sockaddr_in);
 
-    acceptfd = accept(serverfd, (struct sockaddr *) &acceptfd_addr,
-                      (socklen_t *) & acceptfd_addrlen);
+    // TODO capi.c > accept4 => non-blocking behaviour in the future (_GNU_SOURCE)
+#ifdef _GNU_SOURCE
+    int acceptfd = accept4(serverfd, (struct sockaddr *) &acceptfd_addr,
+                           (socklen_t *) & acceptfd_addrlen, 0);
+#else
+    int acceptfd = accept(serverfd, (struct sockaddr *) &acceptfd_addr,
+                           (socklen_t *) & acceptfd_addrlen);
+#endif /* _GNU_SOURCE */
 
     check_error((acceptfd >= 0), "Accept failed.");
 
     struct linger acceptfd_linger;
-    int acceptfd_setopt;
 
     acceptfd_linger.l_onoff = 0;
     acceptfd_linger.l_linger = 0;
-    acceptfd_setopt = setsockopt(acceptfd, SOL_SOCKET,
-                                 SO_LINGER, &acceptfd_linger,
-                                 sizeof(struct linger));
+    int acceptfd_setopt = setsockopt(acceptfd, SOL_SOCKET,
+                                     SO_LINGER, &acceptfd_linger,
+                                     sizeof(struct linger));
 
     check_error((acceptfd_setopt >= 0), "Accept fd setopt linger failed.");
 
+    // NOLINTBEGIN -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
     utils_vaput(STDOUT_FILENO, "accepted from %d.%d.%d.%d:%d\n",
                 acceptfd_addr.sin_addr.s_addr & 0x000000FF,
                 (acceptfd_addr.sin_addr.s_addr & 0x0000FF00) >> 8,
                 (acceptfd_addr.sin_addr.s_addr & 0x00FF0000) >> 16,
                 (acceptfd_addr.sin_addr.s_addr & 0xFF000000) >> 24,
                 acceptfd_addr.sin_port & 0x0000FFFF);
+    // NOLINTEND -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
 
     // TODO capi.c > run_server : dynamic buffer size for accepted socket
-    size_t accept_buff_sz = 1000;
+    size_t accept_buff_sz = 1000;       // NOLINT -cppcoreguidelines-avoid-magic-numbers
     char *accepted_data = recv_data(acceptfd, accept_buff_sz);
 
     utils_vaput(STDOUT_FILENO, "%s\n", accepted_data);
@@ -70,69 +91,41 @@ run_server(int serverfd)
 
     struct http_header_s *header = init_http_header();
 
-    prepare_http_header(header, "HTTP/1.1 200 OK");
-    prepare_http_header(header, "Access-Control-Allow-Origin: *");
-    prepare_http_header(header,
-                        "Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
-    prepare_http_header(header,
-                        "Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
-    prepare_http_header(header, "Content-Type: application/json");
-    prepare_http_header(header, "Content-Length: 1112\r\n");
-    prepare_http_header(header, "{\
-  \"result\": [\
-    {\
-      \"status\": \"active\",\
-      \"name\": {\
-        \"first\": \"Margarett\",\
-        \"middle\": \"Noah\",\
-        \"last\": \"Luettgen\"\
-      },\
-      \"username\": \"Margarett-Luettgen\",\
-      \"password\": \"Wx2dPleO7h0BS81\",\
-      \"emails\": [\
-        \"Vance.Bruen@gmail.com\",\
-        \"Electa82@gmail.com\"\
-      ],\
-      \"phoneNumber\": \"863-504-1328 x818\",\
-      \"location\": {\
-        \"street\": \"58931 Rhett Walks\",\
-        \"city\": \"Beaulahtown\",\
-        \"state\": \"Kansas\",\
-        \"country\": \"Taiwan\",\
-        \"zip\": \"45096\",\
-        \"coordinates\": {\
-          \"latitude\": 82.0592,\
-          \"longitude\": -96.0192\
-        }\
-      },\
-      \"website\": \"https://overjoyed-hornet.name/\",\
-      \"domain\": \"frizzy-timber.com\",\
-      \"job\": {\
-        \"title\": \"Internal Mobility Specialist\",\
-        \"descriptor\": \"Corporate\",\
-        \"area\": \"Research\",\
-        \"type\": \"Planner\",\
-        \"company\": \"Shanahan - Hammes\"\
-      },\
-      \"creditCard\": {\
-        \"number\": \"4936665241163\",\
-        \"cvv\": \"376\",\
-        \"issuer\": \"maestro\"\
-      },\
-      \"uuid\": \"fcd0abbf-ad58-493f-aeb2-fc3a711304f4\",\
-      \"objectId\": \"668dcb65ec04bdd83ae85e13\"\
-    }\
-  ]\
-}");
+    // TODO capi.c > run_server : dynamic endpoints
+    push_http_header(header, "HTTP/1.1 200 OK");
+    push_http_header(header, "Access-Control-Allow-Origin: *");
+    push_http_header(header,
+                     "Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
+    push_http_header(header,
+                     "Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
+    push_http_header(header, "Content-Type: application/json");
+    push_http_header(header, "Content-Length: 1112\r\n");
 
-    //TODO capi.c > run_server : dynamic endpoints
-    //TODO capi.c > run_server : read a JSON file for each endpoint
+    // TODO capi.c > run_server : read a JSON file for each endpoint
+#ifdef CAPI_DEBUG
+    const char *val = json_getfrom("boom.json");
 
-    char *header_str = get_http_header_str(header);
+    if (val == NULL) {
+        push_http_header(header, "{\"response\": \"NULL\"}");
+    } else {
+        if (utils_strlen(val) >= 1000) {
+            push_http_header(header, "{\"response\": \"TOO BIG\"}");
+        } else {
+            push_http_header(header, val);
+        }
+    }
+
+    free((void *) val);
+
+#else
+    push_http_header(header, "{\"response\": \"STATIC\"}");
+#endif /* CAPI_DEBUG */
+
+    const char *header_str = get_http_header_str(header);
 
     send_data(acceptfd, header_str);
 
-    free(header_str);
+    free((void *) header_str);
     free_http_header(header);
 
     int close_acceptfd = close(acceptfd);
@@ -141,7 +134,7 @@ run_server(int serverfd)
 }
 
 void
-send_data(int sockfd, char *value)
+send_data(int sockfd, const char *value)
 {
     // char *send_data_buffer = (char *) malloc(sizeof(char) * n);
 
