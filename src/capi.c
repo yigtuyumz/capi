@@ -5,6 +5,7 @@ const char *
 json_getfrom(const char *json_file)
 {
     json_object *root = json_object_from_file(json_file);
+
     if (root == NULL) {
         return (NULL);
     }
@@ -22,12 +23,12 @@ bind_address(int sockfd, char *address, int port)
 
     sock_address.sin_family = AF_INET;
     sock_address.sin_port = htons(port);
-    check_error((inet_pton(AF_INET, address, &sock_address.sin_addr) > 0),
+    check_error((inet_pton(AF_INET, address, &sock_address.sin_addr) != 1),
                 "Invalid address to bind.");
     int bnd = bind(sockfd, (struct sockaddr *) &sock_address,
                    sizeof(struct sockaddr_in));
 
-    check_error((bnd == 0), "Bind failed.");
+    check_error((bnd != 0), "Bind failed.");
 }
 
 char *
@@ -35,12 +36,12 @@ recv_data(int sockfd, size_t n)
 {
     char *data = (char *) malloc(n);
 
-    check_error((data != NULL), "Malloc recv_data fails!");
+    check_error((data == NULL), "Malloc recv_data fails!");
 
     utils_bzero(data, n);
     ssize_t recv_count = recv(sockfd, data, n, 0);
 
-    check_error((recv_count >= 0), "Recv from socket failed.");
+    check_error((recv_count < 0), "Recv from socket failed.");
 
     return (data);
 }
@@ -57,10 +58,10 @@ run_server(int serverfd)
                            (socklen_t *) & acceptfd_addrlen, 0);
 #else
     int acceptfd = accept(serverfd, (struct sockaddr *) &acceptfd_addr,
-                           (socklen_t *) & acceptfd_addrlen);
+                          (socklen_t *) & acceptfd_addrlen);
 #endif /* _GNU_SOURCE */
 
-    check_error((acceptfd >= 0), "Accept failed.");
+    check_error((acceptfd < 0), "Accept failed.");
 
     struct linger acceptfd_linger;
 
@@ -70,8 +71,9 @@ run_server(int serverfd)
                                      SO_LINGER, &acceptfd_linger,
                                      sizeof(struct linger));
 
-    check_error((acceptfd_setopt >= 0), "Accept fd setopt linger failed.");
+    check_error((acceptfd_setopt < 0), "Accept fd setopt linger failed.");
 
+#ifdef CAPI_DEBUG
     // NOLINTBEGIN -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
     utils_vaput(STDOUT_FILENO, "accepted from %d.%d.%d.%d:%d\n",
                 acceptfd_addr.sin_addr.s_addr & 0x000000FF,
@@ -80,12 +82,16 @@ run_server(int serverfd)
                 (acceptfd_addr.sin_addr.s_addr & 0xFF000000) >> 24,
                 acceptfd_addr.sin_port & 0x0000FFFF);
     // NOLINTEND -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
+#endif
 
     // TODO capi.c > run_server : dynamic buffer size for accepted socket
     size_t accept_buff_sz = 1000;       // NOLINT -cppcoreguidelines-avoid-magic-numbers
     char *accepted_data = recv_data(acceptfd, accept_buff_sz);
 
+    // TODO capi.c > accepted_data parse information from string. acquire METHOD and endpoint.
+#ifdef CAPI_DEBUG
     utils_vaput(STDOUT_FILENO, "%s\n", accepted_data);
+#endif /* CAPI_DEBUG */
 
     free(accepted_data);
 
@@ -99,6 +105,7 @@ run_server(int serverfd)
     push_http_header(header,
                      "Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
     push_http_header(header, "Content-Type: application/json");
+    // TODO capi.c > push_http_header : dynamic Content-Length
     push_http_header(header, "Content-Length: 1112\r\n");
 
     // TODO capi.c > run_server : read a JSON file for each endpoint
@@ -118,7 +125,8 @@ run_server(int serverfd)
     free((void *) val);
 
 #else
-    push_http_header(header, "{\"response\": \"STATIC\"}");
+    push_http_header(header,
+                     "{\"build\":\"RELEASE\",\"response\": \"STATIC\"}");
 #endif /* CAPI_DEBUG */
 
     const char *header_str = get_http_header_str(header);
@@ -130,7 +138,7 @@ run_server(int serverfd)
 
     int close_acceptfd = close(acceptfd);
 
-    check_error((close_acceptfd == 0), "Error while closing accepted socket.");
+    check_error((close_acceptfd != 0), "Error while closing accepted socket.");
 }
 
 void
@@ -142,6 +150,6 @@ send_data(int sockfd, const char *value)
     // utils_strcpy(send_data_buffer, value);
     ssize_t send_value = send(sockfd, value, utils_strlen(value), 0);
 
-    check_error((send_value >= 0), "Send to socket failed.");
+    check_error((send_value < 0), "Send to socket failed.");
 
 }

@@ -76,9 +76,8 @@ push_http_header(struct http_header_s *header, const char *field)
         return (0);
     }
 
-    char **temp =
-        (char **) realloc((void *) header->fields,
-                          sizeof(char *) * (header->sz + 1));
+    char **temp = (char **) realloc((void *) header->fields,
+                                    sizeof(char *) * (header->sz + 1));
 
     if (temp == NULL) {
         return (0);
@@ -109,9 +108,8 @@ push_http_header2(struct http_header_s *header, const char *field)
         return (0);
     }
 
-    char **temp =
-        (char **) realloc((void *) header->fields,
-                          sizeof(char *) * (header->sz + 1));
+    char **temp = (char **) realloc((void *) header->fields,
+                                    sizeof(char *) * (header->sz + 1));
 
     if (temp == NULL) {
         return (0);

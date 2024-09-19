@@ -1,5 +1,7 @@
 #include "utils.h"
 
+// NOLINTBEGIN -cppcoreguidelines-avoid-magic-numbers
+
 int
 utils_isalnum(int val)
 {
@@ -605,3 +607,5 @@ utils_strstr(const char *haystack, const char *needle)
 
     return (((void *) 0));
 }
+
+// NOLINTEND
