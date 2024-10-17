@@ -1,5 +1,6 @@
 #include "capi.h"
 
+// TODO main.c > put in common values into a struct. (System Hardening)
 int
 main(int argc __attribute__((unused)), char *argv[])
 {
@@ -18,17 +19,15 @@ main(int argc __attribute__((unused)), char *argv[])
 
     check_error((CAPI_SOCKFD < 0), "CAPI_SOCKFD create failed.");
 
-    bind_address(CAPI_SOCKFD, "127.0.0.1", CAPI_PORT);
+    bind_address(CAPI_SOCKFD, CAPI_BIND_ADDR, CAPI_PORT);
 
     int listen_CAPI = listen(CAPI_SOCKFD, CAPILISTEN_BACKLOG);
 
     check_error((listen_CAPI < 0), "listen failed.");
 
-    while (1) {
-        run_server(CAPI_SOCKFD);
-    }
+    run_server(CAPI_SOCKFD);
 
-    // TODO main.c > closing CAPI socket -> signal sensitive (SIGINT, SIGKILL, etc)
+    // TODO main.c > closing CAPI socket -> signal sensitive (SIGINT etc.)
     int close_CAPI_SOCKFD = close(CAPI_SOCKFD);
 
     check_error((close_CAPI_SOCKFD != 0), "CAPI_SOCKFD close failed.");

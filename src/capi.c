@@ -1,4 +1,5 @@
 #include "capi.h"
+#include <signal.h>             // NOLINT llvmlibc-restrict-system-libc-headers
 
 #ifdef CAPI_DEBUG
 const char *
@@ -14,7 +15,7 @@ json_getfrom(const char *json_file)
 
     return (val);
 }
-#endif
+#endif /* CAPI_DEBUG */
 
 void
 bind_address(int sockfd, char *address, int port)
@@ -46,99 +47,143 @@ recv_data(int sockfd, size_t n)
     return (data);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// void(*) (int, siginfo_t *, void *)
+void
+capi_sigact(int signum, siginfo_t *info, void *context) // NOLINT misc-unused-parameters
+{
+    if (signum == SIGINT) {     // Ctrl+C
+        printf("\rBye!\n");
+    } else if (signum == SIGTERM) {     // kill process
+        printf("\n\nByexxx!\n");
+        (void) fflush(NULL);
+    } else {                    // segfault etc.
+        printf("%d\n", signum);
+    }
+}
+
+void
+capi_signals(void)
+{
+    struct sigaction sigact;
+
+    sigact.sa_sigaction = capi_sigact;
+    sigemptyset(&sigact.sa_mask);       // don't block extra signals.
+    sigact.sa_flags = SA_SIGINFO;       // sorry ;)
+
+    int interrupt_act = sigaction(SIGINT, &sigact, NULL);
+
+    check_error((interrupt_act == -1), "Sigaction <SIGINT> failed.");
+
+    int term_act = sigaction(SIGTERM, &sigact, NULL);
+
+    check_error((term_act == -1), "Sigaction <SIGTERM> failed.");
+
+    int segfault_act = sigaction(SIGSEGV, &sigact, NULL);
+
+    check_error((segfault_act == -1), "Sigaction <SIGSEGV> failed.");
+}
+////////////////////////////////////////////////////////////////////////////////
+
 void
 run_server(int serverfd)
 {
-    struct sockaddr_in acceptfd_addr;
-    size_t acceptfd_addrlen = sizeof(struct sockaddr_in);
+    // capi_signals();
+    while (1) {
+        struct sockaddr_in acceptfd_addr;
+        size_t acceptfd_addrlen = sizeof(struct sockaddr_in);
 
-    // TODO capi.c > accept4 => non-blocking behaviour in the future (_GNU_SOURCE)
+        // TODO capi.c > accept4 => non-blocking behaviour in the future (_GNU_SOURCE)
 #ifdef _GNU_SOURCE
-    int acceptfd = accept4(serverfd, (struct sockaddr *) &acceptfd_addr,
-                           (socklen_t *) & acceptfd_addrlen, 0);
+        int acceptfd = accept4(serverfd, (struct sockaddr *) &acceptfd_addr,
+                               (socklen_t *) & acceptfd_addrlen, 0);
 #else
-    int acceptfd = accept(serverfd, (struct sockaddr *) &acceptfd_addr,
-                          (socklen_t *) & acceptfd_addrlen);
+        int acceptfd = accept(serverfd, (struct sockaddr *) &acceptfd_addr,
+                              (socklen_t *) & acceptfd_addrlen);
 #endif /* _GNU_SOURCE */
 
-    check_error((acceptfd < 0), "Accept failed.");
+        check_error((acceptfd < 0), "Accept failed.");
 
-    struct linger acceptfd_linger;
+        struct linger acceptfd_linger;
 
-    acceptfd_linger.l_onoff = 0;
-    acceptfd_linger.l_linger = 0;
-    int acceptfd_setopt = setsockopt(acceptfd, SOL_SOCKET,
-                                     SO_LINGER, &acceptfd_linger,
-                                     sizeof(struct linger));
+        acceptfd_linger.l_onoff = 0;
+        acceptfd_linger.l_linger = 0;
+        int acceptfd_setopt = setsockopt(acceptfd, SOL_SOCKET,
+                                         SO_LINGER, &acceptfd_linger,
+                                         sizeof(struct linger));
 
-    check_error((acceptfd_setopt < 0), "Accept fd setopt linger failed.");
+        check_error((acceptfd_setopt < 0), "Accept fd setopt linger failed.");
 
 #ifdef CAPI_DEBUG
-    // NOLINTBEGIN -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
-    utils_vaput(STDOUT_FILENO, "accepted from %d.%d.%d.%d:%d\n",
-                acceptfd_addr.sin_addr.s_addr & 0x000000FF,
-                (acceptfd_addr.sin_addr.s_addr & 0x0000FF00) >> 8,
-                (acceptfd_addr.sin_addr.s_addr & 0x00FF0000) >> 16,
-                (acceptfd_addr.sin_addr.s_addr & 0xFF000000) >> 24,
-                acceptfd_addr.sin_port & 0x0000FFFF);
-    // NOLINTEND -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
-#endif
-
-    // TODO capi.c > run_server : dynamic buffer size for accepted socket
-    size_t accept_buff_sz = 1000;       // NOLINT -cppcoreguidelines-avoid-magic-numbers
-    char *accepted_data = recv_data(acceptfd, accept_buff_sz);
-
-    // TODO capi.c > accepted_data parse information from string. acquire METHOD and endpoint.
-#ifdef CAPI_DEBUG
-    utils_vaput(STDOUT_FILENO, "%s\n", accepted_data);
+        // NOLINTBEGIN -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
+        utils_vaput(STDOUT_FILENO, "accepted from %d.%d.%d.%d:%d\n",
+                    acceptfd_addr.sin_addr.s_addr & 0x000000FF,
+                    (acceptfd_addr.sin_addr.s_addr & 0x0000FF00) >> 8,
+                    (acceptfd_addr.sin_addr.s_addr & 0x00FF0000) >> 16,
+                    (acceptfd_addr.sin_addr.s_addr & 0xFF000000) >> 24,
+                    acceptfd_addr.sin_port & 0x0000FFFF);
+        // NOLINTEND -cppcoreguidelines-avoid-magic-numbers -hicpp-signed-bitwise
 #endif /* CAPI_DEBUG */
 
-    free(accepted_data);
+        // TODO capi.c > run_server : dynamic buffer size for accepted socket
+        size_t accept_buff_sz = 1000;   // NOLINT -cppcoreguidelines-avoid-magic-numbers
+        char *accepted_data = recv_data(acceptfd, accept_buff_sz);
 
-    struct http_header_s *header = init_http_header();
-
-    // TODO capi.c > run_server : dynamic endpoints
-    push_http_header(header, "HTTP/1.1 200 OK");
-    push_http_header(header, "Access-Control-Allow-Origin: *");
-    push_http_header(header,
-                     "Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
-    push_http_header(header,
-                     "Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
-    push_http_header(header, "Content-Type: application/json");
-    // TODO capi.c > push_http_header : dynamic Content-Length
-    push_http_header(header, "Content-Length: 1112\r\n");
-
-    // TODO capi.c > run_server : read a JSON file for each endpoint
+        // TODO capi.c > accepted_data parse information from string. acquire METHOD and endpoint.
 #ifdef CAPI_DEBUG
-    const char *val = json_getfrom("boom.json");
+        utils_vaput(STDOUT_FILENO, "%s\n", accepted_data);
+#endif /* CAPI_DEBUG */
 
-    if (val == NULL) {
-        push_http_header(header, "{\"response\": \"NULL\"}");
-    } else {
-        if (utils_strlen(val) >= 1000) {
-            push_http_header(header, "{\"response\": \"TOO BIG\"}");
+        free(accepted_data);
+
+        struct http_header_s *header = init_http_header();
+
+        check_error((header == NULL), "HTTP header initialization failed.");
+
+        // TODO capi.c > run_server : dynamic endpoints
+        push_http_header(header, "HTTP/1.1 200 OK");
+        push_http_header(header, "Access-Control-Allow-Origin: *");
+        push_http_header(header,
+                         "Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
+        push_http_header(header,
+                         "Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
+        push_http_header(header, "Content-Type: application/json");
+        // TODO capi.c > push_http_header : dynamic Content-Length
+        push_http_header(header, "Content-Length: 1112\r\n");
+
+        // TODO capi.c > run_server : read a JSON file for each endpoint
+#ifdef CAPI_DEBUG
+        const char *val = json_getfrom("boom.json");
+
+        if (val == NULL) {
+            push_http_header(header, "{\"response\": \"NULL\"}");
         } else {
-            push_http_header(header, val);
+            if (utils_strlen(val) >= 1000) {    // NOLINT -cppcoreguidelines-avoid-magic-numbers
+                push_http_header(header, "{\"response\": \"TOO BIG\"}");
+            } else {
+                push_http_header(header, val);
+            }
         }
-    }
 
-    free((void *) val);
+        free((void *) val);
 
 #else
-    push_http_header(header,
-                     "{\"build\":\"RELEASE\",\"response\": \"STATIC\"}");
+        push_http_header(header,
+                         "{\"build\":\"RELEASE\",\"response\": \"STATIC\"}");
 #endif /* CAPI_DEBUG */
 
-    const char *header_str = get_http_header_str(header);
+        const char *header_str = get_http_header_str(header);
 
-    send_data(acceptfd, header_str);
+        send_data(acceptfd, header_str);
 
-    free((void *) header_str);
-    free_http_header(header);
+        free((void *) header_str);
+        free_http_header(header);
 
-    int close_acceptfd = close(acceptfd);
+        int close_acceptfd = close(acceptfd);
 
-    check_error((close_acceptfd != 0), "Error while closing accepted socket.");
+        check_error((close_acceptfd != 0),
+                    "Error while closing accepted socket.");
+    }
 }
 
 void

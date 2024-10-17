@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -std=c99
+CFLAGS := -Wall -Wextra -std=c99 -g
 SOURCES := $(shell find . -maxdepth 1 -name '*.c' | sed 's/ /\\ /g')
 OBJECTS := $(SOURCES:.c=.o)
 EXECUTABLES := $(SOURCES:.c=)

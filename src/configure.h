@@ -11,6 +11,9 @@
 # define CAPI_MIN_PORT 1024
 # define CAPI_MAX_PORT 65000
 
+//~ for now, CAPI works on localhost only. maybe in the future, it will work from another address in an another interface??
+# define CAPI_BIND_ADDR "127.0.0.1"
+
 # ifdef CAPI_DEBUG
 
 typedef enum E_CAPI_FILETYPE {

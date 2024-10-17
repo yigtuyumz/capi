@@ -22,6 +22,6 @@ set -e
 
 cd ./src
 
-indent *.c
-indent *.h
+indent ./*.c
+indent ./*.h
 find . -name "*.*~" -exec rm {} \;

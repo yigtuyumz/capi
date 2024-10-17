@@ -1,3 +1,4 @@
+# TODO Makefile > move to the root folder of project. (and rewrite it, due to line 7)
 CC := clang
 CFLAGS = -Wall -Wextra
 # LDFLAGS = 

@@ -7,6 +7,15 @@ project(capi VERSION 1.0 LANGUAGES C)
 # The C Compiler
 set(CMAKE_C_COMPILER "gcc")
 
+
+# set(CMAKE_C_CLANG_TIDY
+#     clang-tidy;
+#         -header-filter=.*;
+#         -checks=*,-llvmlibc-restrict-system-libc-headers;
+#         -warnings-as-errors=*;
+# )
+
+
 # set default build type if not specified by user
 # Default types: Debug, Release, RelWithDebInfo and MinSizeRel
 # but custom build types can also be defined.
