@@ -9,7 +9,6 @@
 # include <stdarg.h>            /* utils_vaput */
 # include <unistd.h>            /* write */
 # include <stdlib.h>            /* exit */
-# include "utils.h"
 # include "checkerror.h"
 # include "httpheaders.h"
 
@@ -77,10 +76,15 @@
                                           x------------x                        
 */
 
-void bind_address(int sockfd, char *address, int port);
+void bind_address(int sockfd, const char *bind_addr, int port);
 char *recv_data(int sockfd, size_t n);
 void run_server(int serverfd);
 void send_data(int sockfd, const char *value);
+void close_server(int serverfd);
+int create_server(const char *bind_addr, int port);
+void listen_server(int serverfd);
+int set_port(const char *portstr);
+
 
 # ifdef CAPI_DEBUG
 const char *json_getfrom(const char *json_file);

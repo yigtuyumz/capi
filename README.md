@@ -9,7 +9,7 @@ CMAKE_BUILD_TYPE | String | Defaults to "Debug". | CAPI_DEBUG=1 |
 ```sh
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE={Relase | Debug}
+cmake .. -DCMAKE_BUILD_TYPE={Release | Debug}
 make
 ```
 
